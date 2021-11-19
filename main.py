@@ -1,14 +1,18 @@
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import time, openpyxl, requests
 
+user = 'paulo.renato.reche@gmail.com'
+password = '1234'
+Arquivo = "[ANEEL]+Solar+Powerplants.xlsx"
 
 print('Carregando Arquivo...')
-Arquivo = "[ANEEL]+Solar+Powerplants.xlsx"
 Excel = openpyxl.load_workbook(Arquivo)
 active_excel = Excel.active
 linha = []
@@ -20,13 +24,11 @@ for row in range(2,linhaAtual):
         cell_name = "{}{}".format(column, row)
         celula = str(active_excel[cell_name].value)
         celula = celula.replace('/','.').replace(',','.')
-        if celula == processos[len(processos)-1][0]:
-            continue
         processos.append([celula])
 
 processos = processos[:50]
 #print(processos)
-chaves = []
+chaves = [[]]
 for processo in processos:
     aux = processo[0].split('.')
     if len(aux) > 3:
@@ -36,17 +38,13 @@ for processo in processos:
                 aux = aux[:3]
             else:
                 aux = aux[3:]
-    chaves.append(aux)
+    if aux != chaves[len(chaves)-1]:
+            chaves.append(aux)
 
-chaves = chaves[1:]
+chaves = chaves[2:]
 print(chaves)
 print(len(chaves))
 
-
-
-
-user = 'paulo.renato.reche@gmail.com'
-password = '1234'
 
 
 driver = webdriver.Chrome(executable_path='C:\Cdriver\chromedriver.exe')
@@ -111,6 +109,7 @@ else:
 chaves = chaves[1:]
 
 
+
 ##time.sleep(3)
 print('Baixando demais processos')
 for numero in chaves:
@@ -124,35 +123,46 @@ for numero in chaves:
     ##time.sleep(3)
     link = driver.find_element_by_partial_link_text(f'{numero[1]}')  ##Sequencial
     link.click()
-    d = driver.find_element_by_xpath('/html/body/table/tbody/tr[3]/td/div/p[1]/input')
-    d.click()
     try:
-        objeto = driver.switch_to.alert
-        msg = objeto.text
-        print(msg)
-        WebDriverWait(driver, 2).until(EC.alert_is_present())
-        driver.switch_to.alert.accept()
-       ## alert.accept()
-        print("alert accepted")
-        pass
-    except:
-        print('----except----')
-        ##time.sleep(4)
-        windows = driver.window_handles
-        if (len(windows) == 2):
-            driver.switch_to.window(windows[1])
-            driver.close()
-            driver.switch_to.window(windows[0])
-        
-        dowl = driver.find_element_by_xpath('/html/body/table/tbody/tr[3]/td/div/div/div[1]/table/tbody/tr[6]/td[2]/a')
-        print(dowl.get_attribute('href'))
-        '''
-        url = dowl.get_attribute('href')
-        nome = str(numero[0]) + '.' + str(numero[1]) + '_' + str(numero[2]) + '.pdf'
-        r = requests.get(url, verify=False)
-        with open(nome,'wb') as f:
-            f.write(r.content)
+        element = WebDriverWait(driver, 4).until(
+            EC.presence_of_element_located((By.XPATH, "/html/body/table/tbody/tr[3]/td/div/p[1]/input"))
+        )
+        element.click()
+
+  ##  d = driver.find_element_by_xpath('/html/body/table/tbody/tr[3]/td/div/p[1]/input')
+  ##  d.click()
+        try:
+        ## WebDriverWait(driver, 2).until(EC.alert_is_present())   
+            driver.switch_to_alert().accept()
             '''
+            objeto = driver.switch_to.alert
+            msg = objeto.text
+            print(msg)
+            driver.switch_to.alert.accept()
+            '''
+            ##alert.accept()
+            print("alert accepted")
+            continue
+        except:
+            print('----except----')
+            ##time.sleep(4)
+            windows = driver.window_handles
+            if (len(windows) == 2):
+                driver.switch_to.window(windows[1])
+                driver.close()
+                driver.switch_to.window(windows[0])
+            
+            dowl = driver.find_element_by_xpath('/html/body/table/tbody/tr[3]/td/div/div/div[1]/table/tbody/tr[6]/td[2]/a')
+            print("Baixando: " + numero[1])## dowl.get_attribute('href'))
+            '''
+            url = dowl.get_attribute('href')
+            nome = str(numero[0]) + '.' + str(numero[1]) + '_' + str(numero[2]) + '.pdf'
+            r = requests.get(url, verify=False)
+            with open(nome,'wb') as f:
+                f.write(r.content)
+                '''
+    except:
+        continue
 
 
 
